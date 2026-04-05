@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 import asyncio
 from settings.router import router as settings_router
 from documents.router import router as documents_router
+from chat.router import router as chat_router
 from llm.registry import registry
 
 
@@ -39,6 +40,7 @@ app.add_middleware(
 
 app.include_router(settings_router)
 app.include_router(documents_router)
+app.include_router(chat_router)
 
 
 @app.get("/health")
