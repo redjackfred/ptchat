@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Plus, MessageSquare, FileText, Settings, MoreHorizontal } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Plus, MessageSquare, FileText, Settings, MoreHorizontal, Search } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -111,7 +111,13 @@ function SessionItem({
 
 export function AppSidebar({ activeSessionId, onSessionSelect, onSessionsChange }: AppSidebarProps) {
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [query, setQuery] = useState("");
   const pathname = usePathname();
+
+  const filtered = useMemo(
+    () => sessions.filter((s) => s.name.toLowerCase().includes(query.toLowerCase())),
+    [sessions, query]
+  );
 
   const loadSessions = async () => {
     try {
@@ -180,8 +186,17 @@ export function AppSidebar({ activeSessionId, onSessionSelect, onSessionsChange 
         <SidebarGroup>
           <SidebarGroupLabel>Sessions</SidebarGroupLabel>
           <SidebarGroupContent>
+            <div className="relative px-2 pb-2">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search…"
+                className="w-full rounded-md border border-input bg-transparent pl-7 pr-2 py-1 text-xs outline-none placeholder:text-muted-foreground focus:border-ring"
+              />
+            </div>
             <SidebarMenu>
-              {sessions.map((session) => (
+              {filtered.map((session) => (
                 <SessionItem
                   key={session.id}
                   session={session}
@@ -195,6 +210,9 @@ export function AppSidebar({ activeSessionId, onSessionSelect, onSessionsChange 
                 <p className="px-2 py-4 text-xs text-muted-foreground">
                   No sessions yet. Click + to start.
                 </p>
+              )}
+              {sessions.length > 0 && filtered.length === 0 && (
+                <p className="px-2 py-4 text-xs text-muted-foreground">No results.</p>
               )}
             </SidebarMenu>
           </SidebarGroupContent>
