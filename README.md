@@ -1,6 +1,14 @@
 # PTChat
 
-A self-hosted AI chat application with multi-provider LLM support and Retrieval-Augmented Generation (RAG).
+A self-hosted AI chat application built for privacy-conscious users who want full control over their models and data.
+
+Most chat frontends treat RAG as an afterthought and lock you into a single provider. PTChat is different in three ways:
+
+- **Image RAG** — uploaded images are automatically described by a vision model (GPT-4o-mini) before embedding, so photos, diagrams, and screenshots are semantically searchable just like text documents.
+- **Per-session model switching** — each conversation independently chooses its provider and model (OpenAI, Anthropic Claude, Google Gemini, or local Ollama), so you can run GPT-4o and Claude side-by-side.
+- **Production-grade vector store** — RAG is backed by PostgreSQL + pgvector, not an in-memory index. Data persists across restarts and is straightforward to back up or scale.
+
+API keys are stored in the OS keyring — never in plain text on disk.
 
 ## Features
 
