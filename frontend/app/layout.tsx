@@ -5,6 +5,7 @@ import { ThemeProvider } from "next-themes";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SessionProvider } from "@/contexts/session-context";
 import { AppShell } from "@/components/layout/app-shell";
+import { ErrorBoundary } from "@/components/error-boundary";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -30,7 +31,9 @@ export default function RootLayout({
           <TooltipProvider>
             <SessionProvider>
               <AppShell>
-                {children}
+                <ErrorBoundary>
+                  {children}
+                </ErrorBoundary>
               </AppShell>
             </SessionProvider>
           </TooltipProvider>
