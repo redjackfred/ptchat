@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Plus, MessageSquare, FileText, Settings, MoreHorizontal } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -38,22 +38,90 @@ const NAV_ITEMS = [
   { href: "/settings", icon: Settings, label: "Settings" },
 ];
 
+function SessionItem({
+  session,
+  isActive,
+  onSelect,
+  onRename,
+  onDelete,
+}: {
+  session: Session;
+  isActive: boolean;
+  onSelect: () => void;
+  onRename: (name: string) => void;
+  onDelete: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(session.name);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const startEdit = () => {
+    setDraft(session.name);
+    setEditing(true);
+    setTimeout(() => inputRef.current?.select(), 0);
+  };
+
+  const commit = () => {
+    setEditing(false);
+    const trimmed = draft.trim();
+    if (trimmed && trimmed !== session.name) onRename(trimmed);
+    else setDraft(session.name);
+  };
+
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        isActive={isActive}
+        onClick={onSelect}
+        onDoubleClick={startEdit}
+        className="cursor-pointer group/item"
+      >
+        <MessageSquare className="h-3 w-3 shrink-0" />
+        {editing ? (
+          <input
+            ref={inputRef}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={commit}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") commit();
+              if (e.key === "Escape") { setEditing(false); setDraft(session.name); }
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className="flex-1 min-w-0 bg-transparent text-sm outline-none border-b border-ring"
+          />
+        ) : (
+          <span className="truncate text-sm">{session.name}</span>
+        )}
+      </SidebarMenuButton>
+      <DropdownMenu>
+        <DropdownMenuTrigger render={<SidebarMenuAction />}>
+          <MoreHorizontal className="h-3 w-3" />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent side="right">
+          <DropdownMenuItem onClick={startEdit}>Rename</DropdownMenuItem>
+          <DropdownMenuItem className="text-destructive" onClick={onDelete}>
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </SidebarMenuItem>
+  );
+}
+
 export function AppSidebar({ activeSessionId, onSessionSelect, onSessionsChange }: AppSidebarProps) {
   const [sessions, setSessions] = useState<Session[]>([]);
   const pathname = usePathname();
 
   const loadSessions = async () => {
     try {
-      const data = await getSessions();
-      setSessions(data);
+      setSessions(await getSessions());
     } catch (e) {
       console.error("Failed to load sessions", e);
     }
   };
 
-  useEffect(() => {
-    loadSessions();
-  }, []);
+  useEffect(() => { loadSessions(); }, []);
 
   const handleNewSession = async () => {
     const session = await createSession({
@@ -66,18 +134,15 @@ export function AppSidebar({ activeSessionId, onSessionSelect, onSessionsChange 
     onSessionsChange?.();
   };
 
-  const handleDeleteSession = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleRename = async (id: string, name: string) => {
+    const updated = await renameSession(id, name);
+    setSessions((prev) => prev.map((s) => (s.id === id ? updated : s)));
+  };
+
+  const handleDelete = async (id: string) => {
     await deleteSession(id);
     setSessions((prev) => prev.filter((s) => s.id !== id));
     onSessionsChange?.();
-  };
-
-  const handleRenameSession = async (id: string) => {
-    const name = prompt("Rename session:");
-    if (!name) return;
-    const updated = await renameSession(id, name);
-    setSessions((prev) => prev.map((s) => (s.id === id ? updated : s)));
   };
 
   return (
@@ -92,7 +157,6 @@ export function AppSidebar({ activeSessionId, onSessionSelect, onSessionsChange 
       </SidebarHeader>
 
       <SidebarContent>
-        {/* Navigation */}
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -113,38 +177,19 @@ export function AppSidebar({ activeSessionId, onSessionSelect, onSessionsChange 
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Sessions */}
         <SidebarGroup>
           <SidebarGroupLabel>Sessions</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {sessions.map((session) => (
-                <SidebarMenuItem key={session.id}>
-                  <SidebarMenuButton
-                    isActive={session.id === activeSessionId}
-                    onClick={() => onSessionSelect(session)}
-                    className="cursor-pointer"
-                  >
-                    <MessageSquare className="h-3 w-3 shrink-0" />
-                    <span className="truncate text-sm">{session.name}</span>
-                  </SidebarMenuButton>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger render={<SidebarMenuAction />}>
-                      <MoreHorizontal className="h-3 w-3" />
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent side="right">
-                      <DropdownMenuItem onClick={() => handleRenameSession(session.id)}>
-                        Rename
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className="text-destructive"
-                        onClick={(e) => handleDeleteSession(session.id, e)}
-                      >
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </SidebarMenuItem>
+                <SessionItem
+                  key={session.id}
+                  session={session}
+                  isActive={session.id === activeSessionId}
+                  onSelect={() => onSessionSelect(session)}
+                  onRename={(name) => handleRename(session.id, name)}
+                  onDelete={() => handleDelete(session.id)}
+                />
               ))}
               {sessions.length === 0 && (
                 <p className="px-2 py-4 text-xs text-muted-foreground">
