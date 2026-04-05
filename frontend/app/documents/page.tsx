@@ -3,22 +3,29 @@
 import { useEffect, useState } from "react";
 import { FileUploadZone } from "@/components/documents/file-upload-zone";
 import { DocumentTable } from "@/components/documents/document-table";
-import { FolderMonitor } from "@/components/documents/folder-monitor";
 import { Separator } from "@/components/ui/separator";
-import { getDocuments, getSettings } from "@/lib/api";
-import type { Document, AppSettings } from "@/lib/types";
+import { getDocuments, deleteAllDocuments } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import type { Document } from "@/lib/types";
 
 export default function DocumentsPage() {
   const [documents, setDocuments] = useState<Document[]>([]);
-  const [settings, setSettings] = useState<AppSettings | null>(null);
 
-  const loadAll = async () => {
-    const [docs, s] = await Promise.all([getDocuments(), getSettings()]);
-    setDocuments(docs);
-    setSettings(s);
-  };
+  useEffect(() => {
+    getDocuments().then(setDocuments).catch(console.error);
+  }, []);
 
-  useEffect(() => { loadAll(); }, []);
+  // Poll every 2s while any document is still processing
+  useEffect(() => {
+    const hasProcessing = documents.some((d) => d.status === "processing");
+    if (!hasProcessing) return;
+    const id = setInterval(async () => {
+      const docs = await getDocuments();
+      setDocuments(docs);
+      if (docs.every((d) => d.status !== "processing")) clearInterval(id);
+    }, 2000);
+    return () => clearInterval(id);
+  }, [documents]);
 
   return (
     <div className="max-w-3xl mx-auto py-10 px-4 space-y-8">
@@ -34,23 +41,26 @@ export default function DocumentsPage() {
       <Separator />
 
       <section className="space-y-4">
-        <h2 className="text-lg font-semibold">Indexed Documents</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Indexed Documents</h2>
+          {documents.length > 0 && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={async () => {
+                if (!confirm("Delete all documents? This cannot be undone.")) return;
+                await deleteAllDocuments();
+                setDocuments([]);
+              }}
+            >
+              Delete All
+            </Button>
+          )}
+        </div>
         <DocumentTable
           documents={documents}
           onDeleted={(id) => setDocuments((prev) => prev.filter((d) => d.id !== id))}
         />
-      </section>
-
-      <Separator />
-
-      <section className="space-y-4">
-        <h2 className="text-lg font-semibold">Folder Monitoring</h2>
-        {settings && (
-          <FolderMonitor
-            folders={settings.watched_folders}
-            onChanged={loadAll}
-          />
-        )}
       </section>
     </div>
   );

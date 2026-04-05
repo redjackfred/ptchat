@@ -3,6 +3,8 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "next-themes";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { SessionProvider } from "@/contexts/session-context";
+import { AppShell } from "@/components/layout/app-shell";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -26,7 +28,11 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <TooltipProvider>
-            {children}
+            <SessionProvider>
+              <AppShell>
+                {children}
+              </AppShell>
+            </SessionProvider>
           </TooltipProvider>
         </ThemeProvider>
       </body>

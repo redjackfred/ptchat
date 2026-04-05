@@ -1,9 +1,14 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
-export function EmptyState() {
+interface EmptyStateProps {
+  onNewChat?: () => void;
+}
+
+export function EmptyState({ onNewChat }: EmptyStateProps) {
   return (
     <div className="relative flex flex-1 flex-col items-center justify-center overflow-hidden">
       {/* Spotlight effect */}
@@ -40,6 +45,12 @@ export function EmptyState() {
             Select a session or create a new one to begin chatting.
           </p>
         </div>
+        {onNewChat && (
+          <Button onClick={onNewChat} className="mt-2 gap-2">
+            <Plus className="h-4 w-4" />
+            New Chat
+          </Button>
+        )}
       </motion.div>
     </div>
   );

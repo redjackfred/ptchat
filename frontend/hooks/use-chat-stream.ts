@@ -42,10 +42,17 @@ export function useChatStream(sessionId: string | null) {
             const data = line.slice(6).trim();
             if (data === "[DONE]") break;
             try {
-              const { token } = JSON.parse(data) as { token: string };
-              fullContent += token;
-              setStreamingContent(fullContent);
-              onToken(token);
+              const parsed = JSON.parse(data) as { token?: string; error?: string };
+              if (parsed.error) {
+                const errMsg = `Error: ${parsed.error}`;
+                fullContent += errMsg;
+                setStreamingContent(fullContent);
+                onToken(errMsg);
+              } else if (parsed.token) {
+                fullContent += parsed.token;
+                setStreamingContent(fullContent);
+                onToken(parsed.token);
+              }
             } catch {
               // skip malformed line
             }
