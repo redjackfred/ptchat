@@ -25,6 +25,13 @@ export const renameSession = (id: string, name: string) =>
     body: JSON.stringify({ name }),
   });
 
+export const updateSessionModel = (id: string, llm_provider: string, llm_model: string) =>
+  request<Session>(`/sessions/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ llm_provider, llm_model }),
+  });
+
 export const deleteSession = (id: string) =>
   request<{ ok: boolean }>(`/sessions/${id}`, { method: "DELETE" });
 
@@ -45,6 +52,9 @@ export const uploadDocument = async (file: File): Promise<Document> => {
 export const deleteDocument = (id: string) =>
   request<{ ok: boolean }>(`/documents/${id}`, { method: "DELETE" });
 
+export const deleteAllDocuments = () =>
+  request<{ ok: boolean }>("/documents", { method: "DELETE" });
+
 // Settings
 export const getSettings = () => request<AppSettings>("/settings");
 
@@ -56,6 +66,7 @@ export const updateSettings = (patch: Partial<AppSettings>) =>
   });
 
 export const getProviders = () => request<Provider[]>("/settings/providers");
+
 
 export const setApiKey = (provider: string, key: string) =>
   request<{ ok: boolean }>(`/settings/api-keys/${provider}`, {
