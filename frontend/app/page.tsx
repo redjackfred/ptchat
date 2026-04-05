@@ -14,6 +14,7 @@ interface DisplayMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
+  images?: string[];
   streaming?: boolean;
 }
 
@@ -46,7 +47,7 @@ export default function ChatPage() {
   }, [activeSession]);
 
   const handleSend = useCallback(
-    async (content: string) => {
+    async (content: string, images: string[] = []) => {
       if (!activeSession) return;
 
       const userMsgId = `local-user-${Date.now()}`;
@@ -54,7 +55,7 @@ export default function ChatPage() {
 
       setMessages((prev) => [
         ...prev,
-        { id: userMsgId, role: "user", content },
+        { id: userMsgId, role: "user", content, images },
         { id: assistantMsgId, role: "assistant", content: "", streaming: true },
       ]);
 
@@ -78,7 +79,8 @@ export default function ChatPage() {
                   : m
               )
             );
-          }
+          },
+          images,
         );
       } catch (err) {
         console.error("Chat error", err);

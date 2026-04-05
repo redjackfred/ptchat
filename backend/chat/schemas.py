@@ -29,3 +29,4 @@ class MessageOut(BaseModel):
 
 class ChatRequest(BaseModel):
     content: str
+    images: list[str] = []  # base64 data URLs

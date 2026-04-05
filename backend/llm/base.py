@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import AsyncIterator
 
 
@@ -7,6 +7,7 @@ from typing import AsyncIterator
 class Message:
     role: str  # "user" | "assistant" | "system"
     content: str
+    images: list[str] = field(default_factory=list)  # base64 data URLs
 
 
 class LLMProvider(ABC):
@@ -14,15 +15,12 @@ class LLMProvider(ABC):
     async def chat(
         self, messages: list[Message], model: str, stream: bool = True
     ) -> AsyncIterator[str]:
-        """Yield token strings. If stream=False, yield a single complete string."""
         ...
 
     @abstractmethod
     def supports_vision(self) -> bool:
-        """Returns True if this provider can handle image inputs."""
         ...
 
     @abstractmethod
     def available_models(self) -> list[str]:
-        """Returns the list of model IDs available for this provider."""
         ...

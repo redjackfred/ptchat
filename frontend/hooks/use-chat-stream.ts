@@ -9,7 +9,12 @@ export function useChatStream(sessionId: string | null) {
   const [isStreaming, setIsStreaming] = useState(false);
 
   const sendMessage = useCallback(
-    async (content: string, onToken: (token: string) => void, onDone: (full: string) => void) => {
+    async (
+      content: string,
+      onToken: (token: string) => void,
+      onDone: (full: string) => void,
+      images: string[] = [],
+    ) => {
       if (!sessionId) return;
       setIsStreaming(true);
       setStreamingContent("");
@@ -17,7 +22,7 @@ export function useChatStream(sessionId: string | null) {
       const res = await fetch(`${BASE}/sessions/${sessionId}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({ content, images }),
       });
 
       if (!res.ok || !res.body) {

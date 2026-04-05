@@ -70,6 +70,12 @@ async def chat(
 
     history = await service.get_messages(db, session_id)
     messages = [Message(role=m.role, content=m.content) for m in history]
+    # Attach images to the last user message
+    if body.images:
+        for i in range(len(messages) - 1, -1, -1):
+            if messages[i].role == "user":
+                messages[i] = Message(role="user", content=messages[i].content, images=body.images)
+                break
     messages = await augment_messages(messages)
 
     provider = registry.get(sess.llm_provider)

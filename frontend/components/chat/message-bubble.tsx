@@ -10,6 +10,7 @@ import "highlight.js/styles/github-dark.css";
 interface MessageBubbleProps {
   role: "user" | "assistant" | "system";
   content: string;
+  images?: string[];
   streaming?: boolean;
 }
 
@@ -46,7 +47,7 @@ function TypingIndicator() {
   );
 }
 
-export function MessageBubble({ role, content, streaming = false }: MessageBubbleProps) {
+export function MessageBubble({ role, content, images = [], streaming = false }: MessageBubbleProps) {
   const isUser = role === "user";
   const isEmpty = content.trim() === "";
 
@@ -61,7 +62,16 @@ export function MessageBubble({ role, content, streaming = false }: MessageBubbl
         )}
       >
         {isUser ? (
-          <p className="whitespace-pre-wrap">{content}</p>
+          <div className="space-y-2">
+            {images.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {images.map((src, i) => (
+                  <img key={i} src={src} alt="" className="max-h-48 rounded-lg object-contain" />
+                ))}
+              </div>
+            )}
+            {content && <p className="whitespace-pre-wrap">{content}</p>}
+          </div>
         ) : streaming && isEmpty ? (
           <TypingIndicator />
         ) : (

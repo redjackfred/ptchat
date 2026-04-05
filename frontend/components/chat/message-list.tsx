@@ -8,6 +8,7 @@ interface DisplayMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
+  images?: string[];
   streaming?: boolean;
 }
 
@@ -30,6 +31,7 @@ export function MessageList({ messages }: MessageListProps) {
             key={msg.id}
             role={msg.role}
             content={msg.content}
+            images={msg.images}
             streaming={msg.streaming}
           />
         ))}

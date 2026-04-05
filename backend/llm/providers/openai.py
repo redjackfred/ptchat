@@ -19,7 +19,7 @@ class OpenAIProvider(LLMProvider):
 
     async def resolve_tools(
         self,
-        oai_messages: list[dict],
+        oai_messages: list[dict],  # already formatted
         model: str,
         tools: list[dict],
         max_rounds: int = 5,
@@ -70,11 +70,20 @@ class OpenAIProvider(LLMProvider):
 
         return extra
 
+    @staticmethod
+    def _format_message(m: Message) -> dict:
+        if not m.images:
+            return {"role": m.role, "content": m.content}
+        content: list[dict] = [{"type": "text", "text": m.content}]
+        for img in m.images:
+            content.append({"type": "image_url", "image_url": {"url": img}})
+        return {"role": m.role, "content": content}
+
     async def chat(
         self, messages: list[Message], model: str, stream: bool = True
     ) -> AsyncIterator[str]:
         client = self._client()
-        oai_messages = [{"role": m.role, "content": m.content} for m in messages]
+        oai_messages = [self._format_message(m) for m in messages]
         if stream:
             s = await client.chat.completions.create(
                 model=model, messages=oai_messages, stream=True
@@ -92,7 +101,7 @@ class OpenAIProvider(LLMProvider):
         self, messages: list[Message], model: str, tools: list[dict]
     ) -> AsyncIterator[str]:
         """Resolve tool calls first, then stream the final response."""
-        oai_messages = [{"role": m.role, "content": m.content} for m in messages]
+        oai_messages = [self._format_message(m) for m in messages]
         extra = await self.resolve_tools(oai_messages, model, tools)
         final_messages = oai_messages + extra
 
