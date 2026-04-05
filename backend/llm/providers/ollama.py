@@ -21,4 +21,24 @@ class OllamaProvider(LLMProvider):
     async def chat(
         self, messages: list[Message], model: str, stream: bool = True
     ) -> AsyncIterator[str]:
-        yield ""  # Full implementation in Task 8
+        payload = {
+            "model": model,
+            "messages": [{"role": m.role, "content": m.content} for m in messages],
+            "stream": stream,
+        }
+        async with httpx.AsyncClient() as client:
+            if stream:
+                async with client.stream(
+                    "POST", f"{self.base_url}/api/chat", json=payload, timeout=60
+                ) as resp:
+                    import json
+                    async for line in resp.aiter_lines():
+                        if line:
+                            data = json.loads(line)
+                            if content := data.get("message", {}).get("content"):
+                                yield content
+            else:
+                resp = await client.post(
+                    f"{self.base_url}/api/chat", json=payload, timeout=60
+                )
+                yield resp.json()["message"]["content"]

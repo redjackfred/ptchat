@@ -1,8 +1,17 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
 from settings.router import router as settings_router
+from llm.registry import registry
 
-app = FastAPI(title="PTChat API")
+
+@asynccontextmanager
+async def lifespan(app):
+    registry.reload_keys()
+    yield
+
+
+app = FastAPI(title="PTChat API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
