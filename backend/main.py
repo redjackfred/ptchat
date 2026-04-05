@@ -7,6 +7,9 @@ from llm.registry import registry
 
 @asynccontextmanager
 async def lifespan(app):
+    from core.config import config
+    config.uploads_dir.mkdir(parents=True, exist_ok=True)
+    (config.uploads_dir / ".rag_index").mkdir(parents=True, exist_ok=True)
     registry.reload_keys()
     yield
 
