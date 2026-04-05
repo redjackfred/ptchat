@@ -8,7 +8,7 @@ from chat import service
 from chat.schemas import SessionCreate, SessionOut, MessageOut, ChatRequest
 from llm.registry import registry
 from llm.base import Message
-from rag.retriever import augment_messages
+from rag.retriever import augment_messages, get_tools
 
 router = APIRouter(tags=["chat"])
 
@@ -32,10 +32,17 @@ async def get_messages(session_id: uuid.UUID, db: AsyncSession = Depends(get_db)
 
 
 @router.patch("/sessions/{session_id}")
-async def rename_session(
+async def patch_session(
     session_id: uuid.UUID, body: dict, db: AsyncSession = Depends(get_db)
 ):
-    sess = await service.rename_session(db, session_id, body["name"])
+    if "name" in body:
+        sess = await service.rename_session(db, session_id, body["name"])
+    elif "llm_provider" in body and "llm_model" in body:
+        sess = await service.update_session_model(
+            db, session_id, body["llm_provider"], body["llm_model"]
+        )
+    else:
+        raise HTTPException(status_code=400, detail="Provide 'name' or 'llm_provider'+'llm_model'")
     if not sess:
         raise HTTPException(status_code=404, detail="Session not found")
     return sess
@@ -66,13 +73,21 @@ async def chat(
     messages = await augment_messages(messages)
 
     provider = registry.get(sess.llm_provider)
+    tools = get_tools()
 
     async def event_stream():
         full_response = []
         try:
-            async for token in provider.chat(messages, model=sess.llm_model):
+            stream = (
+                provider.chat_with_tools(messages, model=sess.llm_model, tools=tools)
+                if tools and hasattr(provider, "chat_with_tools")
+                else provider.chat(messages, model=sess.llm_model)
+            )
+            async for token in stream:
                 full_response.append(token)
                 yield f"data: {json.dumps({'token': token})}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
         finally:
             if full_response:
                 from db.session import AsyncSessionLocal

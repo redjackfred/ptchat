@@ -73,3 +73,16 @@ async def rename_session(
     await db.commit()
     await db.refresh(session)
     return session
+
+
+async def update_session_model(
+    db: AsyncSession, session_id: uuid.UUID, llm_provider: str, llm_model: str
+) -> ChatSession | None:
+    session = await get_session(db, session_id)
+    if not session:
+        return None
+    session.llm_provider = llm_provider
+    session.llm_model = llm_model
+    await db.commit()
+    await db.refresh(session)
+    return session

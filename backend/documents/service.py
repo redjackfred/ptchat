@@ -38,10 +38,32 @@ async def upload_document(
     return doc
 
 
+async def index_file_in_place(
+    db: AsyncSession, file_path: str
+) -> Document:
+    """Index a file without copying it — used for folder monitoring."""
+    path = Path(file_path)
+    doc = Document(
+        id=uuid.uuid4(),
+        name=path.name,
+        file_type=path.suffix.lstrip(".") or "unknown",
+        size_bytes=path.stat().st_size if path.exists() else 0,
+        status="processing",
+        source="folder",
+        file_path=file_path,
+    )
+    db.add(doc)
+    await db.commit()
+    await db.refresh(doc)
+
+    asyncio.create_task(_run_ingest(doc.id, file_path))
+    return doc
+
+
 async def _run_ingest(doc_id: uuid.UUID, file_path: str) -> None:
     from db.session import AsyncSessionLocal
     try:
-        await ingest_file(file_path)
+        await ingest_file(file_path, document_id=doc_id)
         status, indexed_at = "ready", datetime.utcnow()
     except asyncio.CancelledError:
         return
@@ -64,13 +86,24 @@ async def _run_ingest(doc_id: uuid.UUID, file_path: str) -> None:
         pass
 
 
+async def delete_all_documents(db: AsyncSession) -> None:
+    result = await db.execute(select(Document))
+    docs = result.scalars().all()
+    for doc in docs:
+        if doc.file_path:
+            await delete_file(doc.file_path, document_id=doc.id)
+            Path(doc.file_path).unlink(missing_ok=True)
+        await db.delete(doc)
+    await db.commit()
+
+
 async def delete_document(db: AsyncSession, doc_id: uuid.UUID) -> bool:
     result = await db.execute(select(Document).where(Document.id == doc_id))
     doc = result.scalar_one_or_none()
     if not doc:
         return False
     if doc.file_path:
-        await delete_file(doc.file_path)
+        await delete_file(doc.file_path, document_id=doc_id)
         Path(doc.file_path).unlink(missing_ok=True)
     await db.delete(doc)
     await db.commit()

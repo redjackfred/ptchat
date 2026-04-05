@@ -19,6 +19,12 @@ async def upload_document(file: UploadFile, db: AsyncSession = Depends(get_db)):
     return await service.upload_document(db, file.filename, content)
 
 
+@router.delete("")
+async def delete_all_documents(db: AsyncSession = Depends(get_db)):
+    await service.delete_all_documents(db)
+    return {"ok": True}
+
+
 @router.delete("/{doc_id}")
 async def delete_document(doc_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     ok = await service.delete_document(db, doc_id)

@@ -9,7 +9,6 @@ _svc = SettingsService()
 class SettingsPatch(BaseModel):
     theme: str | None = None
     ollama_endpoint: str | None = None
-    watched_folders: list[str] | None = None
 
 
 class ApiKeyBody(BaseModel):
