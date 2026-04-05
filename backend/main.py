@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from settings.router import router as settings_router
 
 app = FastAPI(title="PTChat API")
 
@@ -10,6 +11,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(settings_router)
 
 
 @app.get("/health")
